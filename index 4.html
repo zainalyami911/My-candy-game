@@ -1,0 +1,1161 @@
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Sweet Crush - Match 3</title>
+<meta name="theme-color" content="#ff4d94" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg1:#0f1020; --bg2:#1b1e3c; --pink:#ff4d94; --yellow:#ffd166; --purple:#8b5cf6; --cyan:#22d3ee; --green:#22c55e; --orange:#fb923c; --red:#ef4444;
+  }
+  html,body{height:100%;background:radial-gradient(1200px 800px at 50% -10%, #2a2e63 0%, #14162e 45%, #0c0d1a 100%);font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#fff;overscroll-behavior:none;}
+  .title-font{font-family:'Baloo 2', cursive;}
+  .glass{background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));backdrop-filter: blur(10px);border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06);}
+  .btn{transition:transform .08s ease, box-shadow .2s ease, background .2s ease;}
+  .btn:active{transform:scale(.97);}
+  .tile{position:absolute; width:var(--tile); height:var(--tile); border-radius:18px; display:flex; align-items:center; justify-content:center; user-select:none; -webkit-user-select:none; touch-action:none; cursor:pointer; transition: transform .12s ease, filter .12s ease, opacity .2s ease;}
+  .tile.dragging{transform:scale(1.08) rotate(2deg); z-index:10; filter:brightness(1.1);}
+  .tile.spawn{animation:spawn .22s cubic-bezier(.2,.9,.2,1.1);}
+  @keyframes spawn{from{transform:scale(.2) translateY(-40%); opacity:.2} to{transform:scale(1) translateY(0); opacity:1}}
+  .tile.remove{animation:pop .22s ease forwards;}
+  @keyframes pop{0%{transform:scale(1)} 60%{transform:scale(1.2)} 100%{transform:scale(0); opacity:0}}
+  .tile.striped-h::after, .tile.striped-v::after, .tile.wrapped::after, .tile.colorbomb::after{content:''; position:absolute; inset:0; border-radius:18px; pointer-events:none;}
+  .tile.striped-h::after{background: repeating-linear-gradient(90deg, rgba(255,255,255,.7) 0 6px, transparent 6px 12px); mix-blend-mode:overlay; opacity:.7;}
+  .tile.striped-v::after{background: repeating-linear-gradient(0deg, rgba(255,255,255,.7) 0 6px, transparent 6px 12px); mix-blend-mode:overlay; opacity:.7;}
+  .tile.wrapped::after{box-shadow:inset 0 0 0 4px rgba(255,255,255,.65), 0 0 18px rgba(255,255,255,.35); border-radius:18px;}
+  .tile.colorbomb{background: radial-gradient(circle at 30% 30%, #fff, #ffd6ff 30%, #c084fc 60%, #4c1d95 100%) !important;}
+  .candy{font-size:calc(var(--tile)*0.62); filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));}
+  .ob-ice::before{content:''; position:absolute; inset:-2px; border-radius:20px; background:linear-gradient(135deg, rgba(180,230,255,.55), rgba(120,200,255,.35)); border:2px solid rgba(200,240,255,.7); box-shadow:inset 0 0 30px rgba(180,230,255,.7);}
+  .ob-lock::after{content:'🔒'; position:absolute; top:4px; right:6px; font-size:calc(var(--tile)*0.33); filter: drop-shadow(0 2px 2px rgba(0,0,0,.5));}
+  .board-wrap{position:relative; width:100%; aspect-ratio:1/1; max-width:520px; margin:0 auto;}
+  .grid-bg{position:absolute; inset:0; border-radius:24px; background:
+      linear-gradient(transparent 49.5%, rgba(255,255,255,.05) 49.5% 50.5%, transparent 50.5%) 0 0/ calc(100%/8) calc(100%/8),
+      linear-gradient(90deg, transparent 49.5%, rgba(255,255,255,.05) 49.5% 50.5%, transparent 50.5%) 0 0/ calc(100%/8) calc(100%/8),
+      linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.06), 0 20px 60px rgba(0,0,0,.45);}
+  .hud-chip{background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.1); padding:.35rem .6rem; border-radius:999px; display:inline-flex; align-items:center; gap:.4rem; backdrop-filter: blur(6px);}
+  .pulse{animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .shake{animation:shake .25s linear;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .glow{box-shadow:0 0 0 3px rgba(255,255,255,.2), 0 0 30px rgba(255,77,148,.6), inset 0 0 30px rgba(255,255,255,.15);}
+  .ad-banner{height:56px; display:flex; align-items:center; justify-content:center; font-weight:700; letter-spacing:.5px; background: repeating-linear-gradient(45deg, #222 0 12px, #2c2c2c 12px 24px); border-top:1px solid rgba(255,255,255,.08);}
+  .hidden{display:none !important;}
+  .scroll-thin::-webkit-scrollbar{height:8px;width:8px}
+  .scroll-thin::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:999px}
+</style>
+</head>
+<body class="select-none">
+<div id="app" class="min-h-full flex flex-col">
+  <!-- Top Bar -->
+  <header class="w-full sticky top-0 z-30">
+    <div class="mx-auto max-w-5xl px-3 pt-3">
+      <div class="glass rounded-2xl px-3 py-2 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-fuchsia-600 grid place-items-center shadow-lg"><span class="title-font text-xl">🍬</span></div>
+          <div class="title-font text-2xl tracking-wide">Sweet Crush</div>
+          <span class="ml-2 text-xs opacity-70">v1.0.0</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="hud-chip"><span>🪙</span><b id="coins">0</b></div>
+          <button id="btnSettings" class="hud-chip btn hover:bg-white/10" aria-label="Settings">⚙️</button>
+          <button id="btnMute" class="hud-chip btn hover:bg-white/10" aria-label="Mute">🔊</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Screens -->
+  <main class="flex-1 flex flex-col">
+    <!-- Start Screen -->
+    <section id="screen-start" class="flex-1 flex items-center justify-center p-4">
+      <div class="glass rounded-3xl p-6 w-full max-w-xl text-center">
+        <div class="text-5xl mb-2">🍭🍬🍫</div>
+        <h1 class="title-font text-4xl sm:text-5xl mb-2">Match, Blast & Shine!</h1>
+        <p class="opacity-80 mb-5">Swap candies, trigger chain reactions, collect goals, and climb 50 tasty levels.</p>
+        <div class="grid sm:grid-cols-3 gap-3 mb-5">
+          <div class="glass rounded-2xl p-4">
+            <div class="text-3xl mb-1">🎯</div>
+            <div class="text-sm opacity-80">Goal based levels</div>
+          </div>
+          <div class="glass rounded-2xl p-4">
+            <div class="text-3xl mb-1">💥</div>
+            <div class="text-sm opacity-80">Special candies & combos</div>
+          </div>
+          <div class="glass rounded-2xl p-4">
+            <div class="text-3xl mb-1">⚡</div>
+            <div class="text-sm opacity-80">Smooth 60fps animations</div>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button id="btnPlay" class="btn px-6 py-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 font-bold text-lg shadow-lg hover:brightness-110">Play</button>
+          <button id="btnMap" class="btn px-6 py-3 rounded-2xl glass font-semibold">Level Map</button>
+          <button id="btnDaily" class="btn px-6 py-3 rounded-2xl glass font-semibold">Daily Reward 🎁</button>
+        </div>
+        <div class="mt-5 text-xs opacity-70">Offline play. Simulated ads for testing. Replace Ad Unit IDs for production (AdMob).</div>
+      </div>
+    </section>
+
+    <!-- Level Map -->
+    <section id="screen-map" class="hidden flex-1 p-3">
+      <div class="mx-auto max-w-5xl">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="title-font text-3xl">Level Map</h2>
+          <div class="flex gap-2">
+            <button id="btnBackFromMap" class="btn glass px-4 py-2 rounded-xl">Back</button>
+          </div>
+        </div>
+        <div id="mapGrid" class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2"></div>
+      </div>
+    </section>
+
+    <!-- Game Screen -->
+    <section id="screen-game" class="hidden flex-1 flex flex-col">
+      <div class="mx-auto w-full max-w-5xl px-3 pt-3 flex-1 flex flex-col">
+        <!-- HUD -->
+        <div class="glass rounded-2xl p-3 mb-3 flex flex-wrap items-center gap-2 justify-between">
+          <div class="flex items-center gap-2">
+            <div class="hud-chip"><span>Level</span> <b id="hudLevel">1</b></div>
+            <div class="hud-chip"><span>🎯</span> <span id="hudGoal">Score 1,000</span></div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="hud-chip"><span>Moves</span> <b id="hudMoves">20</b></div>
+            <div class="hud-chip"><span>⭐</span> <b id="hudScore">0</b></div>
+            <button id="btnBoostStriped" class="btn hud-chip hover:bg-white/10" title="Striped Booster">➡️ <b id="cntStriped">1</b></button>
+            <button id="btnBoostBomb" class="btn hud-chip hover:bg-white/10" title="Wrapped Booster">💣 <b id="cntBomb">1</b></button>
+            <button id="btnBoostColor" class="btn hud-chip hover:bg-white/10" title="Color Bomb">🌈 <b id="cntColor">0</b></button>
+          </div>
+        </div>
+
+        <!-- Board -->
+        <div class="board-wrap glass rounded-3xl p-3 relative overflow-hidden">
+          <canvas id="fx" class="absolute inset-0 pointer-events-none"></canvas>
+          <div class="grid-bg rounded-2xl"></div>
+          <div id="board" class="absolute inset-3"></div>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div class="mt-3 mb-2 flex items-center justify-between gap-2">
+          <button id="btnQuit" class="btn glass px-4 py-2 rounded-xl">Quit</button>
+          <div class="flex items-center gap-2">
+            <button id="btnShuffle" class="btn glass px-4 py-2 rounded-xl" title="Shuffle (cost 50)">🔀 Shuffle</button>
+            <button id="btnShop" class="btn glass px-4 py-2 rounded-xl">Shop 🛒</button>
+          </div>
+        </div>
+      </div>
+      <div id="bannerAd" class="ad-banner w-full text-center text-sm opacity-90 select-none">Test Banner Ad (AdMob Placeholder)</div>
+    </section>
+  </main>
+
+  <!-- Modals -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden"></div>
+
+  <!-- Level Start -->
+  <div id="modalLevelStart" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center">
+      <div class="title-font text-3xl mb-2">Level <span id="startLevelNum">1</span></div>
+      <div class="mb-3 opacity-90" id="startGoalDesc">Reach 1,000 points in 20 moves.</div>
+      <div class="flex justify-center gap-2 mb-4" id="startGoalIcons"></div>
+      <button id="btnStartLevel" class="btn px-6 py-3 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 font-bold text-lg shadow-lg">Start</button>
+    </div>
+  </div>
+
+  <!-- Level End -->
+  <div id="modalEnd" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center">
+      <div class="title-font text-4xl mb-1" id="endTitle">Level Complete!</div>
+      <div class="mb-2 opacity-80" id="endSubtitle">Great job!</div>
+      <div class="grid grid-cols-3 gap-3 my-4">
+        <div class="glass rounded-2xl p-3"><div class="text-3xl" id="star1">☆</div><div class="text-xs opacity-70">Score</div></div>
+        <div class="glass rounded-2xl p-3"><div class="text-3xl" id="star2">☆</div><div class="text-xs opacity-70">Moves left</div></div>
+        <div class="glass rounded-2xl p-3"><div class="text-3xl" id="star3">☆</div><div class="text-xs opacity-70">Efficiency</div></div>
+      </div>
+      <div class="mb-3">Reward: <b>🪙 <span id="endCoins">0</span></b></div>
+      <div class="flex flex-col sm:flex-row gap-2 justify-center">
+        <button id="btnNext" class="btn px-5 py-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 font-bold">Next</button>
+        <button id="btnReplay" class="btn px-5 py-3 rounded-2xl glass font-semibold">Replay</button>
+        <button id="btnMapFromEnd" class="btn px-5 py-3 rounded-2xl glass font-semibold">Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Out of Moves -->
+  <div id="modalOut" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center">
+      <div class="title-font text-3xl mb-2">Out of Moves</div>
+      <p class="opacity-80 mb-4">Continue with +5 moves?</p>
+      <div class="flex flex-col sm:flex-row gap-2 justify-center">
+        <button id="btnContinueAd" class="btn px-5 py-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 font-bold">Watch Ad (Free)</button>
+        <button id="btnContinueCoins" class="btn px-5 py-3 rounded-2xl glass font-semibold">Use 150 🪙</button>
+        <button id="btnGiveUp" class="btn px-5 py-3 rounded-2xl glass">Give Up</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interstitial Ad -->
+  <div id="modalInterstitial" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center relative overflow-hidden">
+      <div class="absolute -top-14 -right-10 w-64 h-64 bg-pink-500/20 blur-3xl rounded-full"></div>
+      <div class="title-font text-3xl mb-1">Advertisement</div>
+      <div class="opacity-80 mb-3 text-sm">This is a simulated interstitial (AdMob test). Closes in <b><span id="adCountdown">5</span>s</b>.</div>
+      <div class="h-40 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 grid place-items-center mb-3 border border-white/10">
+        <div class="text-5xl">📺</div>
+        <div class="text-xs opacity-70 -mt-6">Test Ad Creative</div>
+      </div>
+      <button id="btnCloseInterstitial" class="btn px-5 py-2 rounded-xl glass opacity-60 pointer-events-none">Close</button>
+      <div class="mt-2 text-[11px] opacity-60">Replace with real Ad Unit ID for production.</div>
+    </div>
+  </div>
+
+  <!-- Rewarded Ad -->
+  <div id="modalRewarded" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center">
+      <div class="title-font text-3xl mb-1">Rewarded Ad</div>
+      <div class="opacity-80 mb-3 text-sm">Watch a short ad to claim your reward.</div>
+      <div class="h-36 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 grid place-items-center mb-3 border border-white/10">
+        <div class="text-6xl">🎁</div>
+      </div>
+      <div id="rewardProgress" class="w-full h-2 bg-white/10 rounded mb-3 overflow-hidden"><div id="rewardBar" class="h-full w-0 bg-gradient-to-r from-amber-400 to-orange-500"></div></div>
+      <button id="btnClaimReward" class="btn px-5 py-2 rounded-xl glass opacity-60 pointer-events-none">Claim</button>
+    </div>
+  </div>
+
+  <!-- Shop -->
+  <div id="modalShop" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-lg">
+      <div class="flex items-center justify-between mb-3">
+        <div class="title-font text-3xl">Shop</div>
+        <button id="btnCloseShop" class="btn glass px-3 py-2 rounded-xl">Close</button>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div class="glass rounded-2xl p-4 text-center">
+          <div class="text-4xl mb-1">➡️</div>
+          <div class="font-semibold mb-1">Striped Booster</div>
+          <div class="opacity-70 text-sm mb-3">Start level with a striped candy.</div>
+          <button data-buy="striped" class="btn w-full py-2 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 font-bold">Buy 120 🪙</button>
+        </div>
+        <div class="glass rounded-2xl p-4 text-center">
+          <div class="text-4xl mb-1">💣</div>
+          <div class="font-semibold mb-1">Wrapped Booster</div>
+          <div class="opacity-70 text-sm mb-3">Start with a bomb.</div>
+          <button data-buy="bomb" class="btn w-full py-2 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-600 font-bold">Buy 150 🪙</button>
+        </div>
+        <div class="glass rounded-2xl p-4 text-center">
+          <div class="text-4xl mb-1">🌈</div>
+          <div class="font-semibold mb-1">Color Bomb</div>
+          <div class="opacity-70 text-sm mb-3">Powerful starter.</div>
+          <button data-buy="color" class="btn w-full py-2 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 font-bold">Buy 300 🪙</button>
+        </div>
+      </div>
+      <div class="text-xs opacity-70 mt-3">Coins are earned by completing levels and daily rewards. No real money required.</div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="modalSettings" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md">
+      <div class="flex items-center justify-between mb-3">
+        <div class="title-font text-3xl">Settings</div>
+        <button id="btnCloseSettings" class="btn glass px-3 py-2 rounded-xl">Close</button>
+      </div>
+      <div class="flex items-center justify-between py-2">
+        <div>Sound</div>
+        <button id="toggleSound" class="btn glass px-3 py-2 rounded-xl">On</button>
+      </div>
+      <div class="flex items-center justify-between py-2">
+        <div>Vibration</div>
+        <button id="toggleVib" class="btn glass px-3 py-2 rounded-xl">On</button>
+      </div>
+      <div class="text-xs opacity-70 mt-3">Privacy Policy: <a href="#" class="underline" id="privacyLink">https://example.com/privacy</a></div>
+    </div>
+  </div>
+
+  <!-- Daily Reward -->
+  <div id="modalDaily" class="fixed inset-0 z-50 hidden place-items-center p-4">
+    <div class="glass rounded-3xl p-6 w-full max-w-md text-center">
+      <div class="title-font text-3xl mb-1">Daily Reward</div>
+      <div class="opacity-80 mb-3">Come back each day for bigger gifts!</div>
+      <div class="grid grid-cols-5 gap-2 mb-4" id="dailyGrid"></div>
+      <button id="btnClaimDaily" class="btn px-5 py-3 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-600 font-bold">Claim</button>
+      <div class="text-xs opacity-70 mt-2" id="dailyNote"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// =============== Utilities & State ===============
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+const delay = ms => new Promise(res=>setTimeout(res, ms));
+const vibrate = (pattern)=>{ try{ if(state.settings.vib && navigator.vibrate) navigator.vibrate(pattern); }catch(e){} };
+
+const CANDIES = [
+  {color:'red',    emoji:'🍓'},
+  {color:'orange', emoji:'🍊'},
+  {color:'yellow', emoji:'🍋'},
+  {color:'green',  emoji:'🍏'},
+  {color:'blue',   emoji:'🫐'},
+  {color:'purple', emoji:'🍇'},
+];
+
+const STORAGE_KEY = 'sweetCrush_v1';
+
+const defaultState = {
+  coins: 200,
+  boosters:{striped:1,bomb:1,color:0},
+  unlocked: 1,
+  progress: {1:{stars:0,bestScore:0}},
+  settings:{sound:true, music:true, vib:true},
+  lastDaily:null,
+  dailyStreak:0,
+};
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return structuredClone(defaultState);
+    const parsed = JSON.parse(raw);
+    return {...structuredClone(defaultState), ...parsed};
+  }catch(e){ return structuredClone(defaultState); }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); updateHUD(); renderMap(); }
+
+function updateHUD(){
+  $('#coins').textContent = state.coins;
+  $('#cntStriped').textContent = state.boosters.striped;
+  $('#cntBomb').textContent = state.boosters.bomb;
+  $('#cntColor').textContent = state.boosters.color;
+  $('#toggleSound').textContent = state.settings.sound? 'On':'Off';
+  $('#toggleVib').textContent = state.settings.vib? 'On':'Off';
+  $('#btnMute').textContent = state.settings.sound? '🔊':'🔇';
+}
+
+function openModal(id){
+  $('#modalBackdrop').classList.remove('hidden');
+  $(id).classList.remove('hidden');
+  $(id).classList.add('grid');
+}
+function closeModals(){
+  $('#modalBackdrop').classList.add('hidden');
+  ['#modalLevelStart','#modalEnd','#modalOut','#modalInterstitial','#modalRewarded','#modalShop','#modalSettings','#modalDaily'].forEach(sel=>{
+    $(sel).classList.add('hidden'); $(sel).classList.remove('grid');
+  });
+}
+$('#modalBackdrop').addEventListener('click', closeModals);
+
+// =============== Audio (WebAudio simple synth) ===============
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let actx = null;
+function ensureAudio(){ if(!actx) try{ actx = new AudioCtx(); }catch(e){} }
+function beep(freq=600, dur=0.08, type='sine', vol=0.2){
+  if(!state.settings.sound) return;
+  ensureAudio(); if(!actx) return;
+  const o = actx.createOscillator(); const g = actx.createGain();
+  o.type = type; o.frequency.value = freq; g.gain.value = vol;
+  o.connect(g); g.connect(actx.destination);
+  const t = actx.currentTime;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function chord(base=440){ beep(base, .09, 'triangle', .18); setTimeout(()=>beep(base*1.25, .09, 'triangle', .15), 40); setTimeout(()=>beep(base*1.5, .11, 'triangle', .12), 80); }
+function popSound(){ beep(700+Math.random()*200, .06, 'square', .15); }
+function badSound(){ beep(200, .12, 'sawtooth', .18); setTimeout(()=>beep(160, .12, 'sawtooth', .15), 80); }
+function sparkle(){ chord(880); }
+
+// =============== Level Generation ===============
+function makeLevels(total=50){
+  const levels=[];
+  for(let i=1;i<=total;i++){
+    const difficulty = i;
+    const moves = clamp(28 - Math.floor(i/4), 12, 28);
+    const targetScore = 800 + i*120 + rand(0,200);
+    const goals = {};
+    // Every few levels add collect goals
+    if(i%2===0) goals[CANDIES[i%6].color] = 8 + Math.floor(i/3);
+    if(i%5===0) goals[CANDIES[(i+2)%6].color] = 10 + Math.floor(i/4);
+    const ice = i>=6? (i>=20? rand(4,12): rand(0,6)) : 0;
+    const locks = i>=10? (i>=25? rand(4,10): rand(0,5)) : 0;
+    levels.push({
+      level:i, moves, targetScore, collect:goals, ice, locks
+    });
+  }
+  return levels;
+}
+const LEVELS = makeLevels(50);
+
+// =============== Board Engine ===============
+const BOARD_SIZE = 8;
+let boardEl = $('#board');
+let fxCanvas = $('#fx'), fxCtx = fxCanvas.getContext('2d');
+let tileSize = 64;
+let board = []; // 2D array of tile objects
+let busy = false;
+let levelData = null;
+let curLevel = 1;
+let movesLeft = 20;
+let score = 0;
+let combo = 0;
+let selected = null;
+let dragStart = null;
+let goalState = {collected:{}};
+let specialQueued = []; // placements after resolution
+let starterBoost = null; // {type:'striped'|'bomb'|'color', pos:{r,c}|null}
+
+function resizeCanvas(){
+  const rect = boardEl.getBoundingClientRect();
+  fxCanvas.width = rect.width; fxCanvas.height = rect.height;
+}
+window.addEventListener('resize', ()=>{ computeTileSize(); resizeCanvas(); renderBoard(true); });
+
+function computeTileSize(){
+  const container = boardEl.parentElement.getBoundingClientRect();
+  const pad = 12; // inner padding
+  const size = Math.min(container.width, container.height) - pad*2;
+  tileSize = Math.floor(size / BOARD_SIZE);
+  boardEl.style.setProperty('--tile', tileSize+'px');
+}
+
+function newTile(type){
+  return {
+    id: Math.random().toString(36).slice(2),
+    type, // color name
+    special: null, // 'striped-h'|'striped-v'|'wrapped'|'color'
+    locked: false,
+    ice: 0, // 0 none, 1-2 layers
+    fresh: true,
+  };
+}
+
+function randomCandy(exclude=[]){
+  const pool = CANDIES.map(c=>c.color).filter(c=>!exclude.includes(c));
+  return pool[rand(0, pool.length-1)];
+}
+
+function initBoard(level){
+  levelData = LEVELS[level-1];
+  curLevel = level;
+  movesLeft = levelData.moves;
+  score = 0; combo = 0; selected=null; dragStart=null; specialQueued=[]; starterBoost=null;
+  goalState = {collected:{}};
+  Object.keys(levelData.collect||{}).forEach(k=>goalState.collected[k]=0);
+  board = Array.from({length:BOARD_SIZE}, ()=> Array.from({length:BOARD_SIZE}, ()=> newTile(randomCandy())));
+  // avoid initial matches
+  sanitizeBoard();
+  // sprinkle obstacles
+  applyObstacles(levelData.ice, levelData.locks);
+  computeTileSize(); resizeCanvas(); renderBoard(true);
+  updateGameHUD();
+  showLevelStart();
+}
+
+function applyObstacles(iceCount, lockCount){
+  let placed=0;
+  while(placed<iceCount){
+    const r=rand(0,BOARD_SIZE-1), c=rand(0,BOARD_SIZE-1);
+    if(board[r][c].ice||board[r][c].locked) continue;
+    board[r][c].ice = rand(1,2);
+    placed++;
+  }
+  placed=0;
+  while(placed<lockCount){
+    const r=rand(0,BOARD_SIZE-1), c=rand(0,BOARD_SIZE-1);
+    if(board[r][c].ice||board[r][c].locked) continue;
+    board[r][c].locked = true;
+    placed++;
+  }
+}
+
+function sanitizeBoard(){
+  // ensure no 3-in-row at start
+  for(let r=0;r<BOARD_SIZE;r++){
+    for(let c=0;c<BOARD_SIZE;c++){
+      let tries=0;
+      while(tries<20 && createsMatch(r,c, board[r][c].type)){
+        board[r][c].type = randomCandy([board[r][c].type]);
+        tries++;
+      }
+    }
+  }
+}
+
+function createsMatch(r,c,color){
+  // check horizontal
+  let left = c-1>=0 && board[r][c-1]?.type===color ? 1+ (c-2>=0 && board[r][c-2]?.type===color?1:0) : 0;
+  let right= c+1<BOARD_SIZE && board[r][c+1]?.type===color ? 1+ (c+2<BOARD_SIZE && board[r][c+2]?.type===color?1:0) : 0;
+  if(left+right+1>=3) return true;
+  let up = r-1>=0 && board[r-1][c]?.type===color ? 1+ (r-2>=0 && board[r-2][c]?.type===color?1:0) : 0;
+  let down= r+1<BOARD_SIZE && board[r+1][c]?.type===color ? 1+ (r+2<BOARD_SIZE && board[r+2][c]?.type===color?1:0) : 0;
+  return (up+down+1>=3);
+}
+
+function renderBoard(initial=false){
+  boardEl.innerHTML = '';
+  const pad = 0;
+  for(let r=0;r<BOARD_SIZE;r++){
+    for(let c=0;c<BOARD_SIZE;c++){
+      const t = board[r][c];
+      if(!t) continue;
+      const el = document.createElement('div');
+      el.className = 'tile';
+      if(t.special==='striped-h') el.classList.add('striped-h');
+      if(t.special==='striped-v') el.classList.add('striped-v');
+      if(t.special==='wrapped') el.classList.add('wrapped');
+      if(t.special==='color') el.classList.add('colorbomb');
+      if(t.ice>0) el.classList.add('ob-ice');
+      if(t.locked) el.classList.add('ob-lock');
+      el.dataset.r=r; el.dataset.c=c;
+      el.style.transform = `translate(${c*tileSize}px, ${r*tileSize}px)`;
+      el.style.width = el.style.height = tileSize+'px';
+      // candy visuals
+      const inner = document.createElement('div');
+      const candy = CANDIES.find(cd=>cd.color===t.type);
+      inner.className = 'candy';
+      inner.textContent = t.special==='color' ? '🌈' : (candy? candy.emoji : '🍬');
+      // color bg
+      el.style.background = bgFor(t);
+      el.appendChild(inner);
+      if(initial) el.classList.add('spawn');
+      // events
+      addTileEvents(el);
+      boardEl.appendChild(el);
+    }
+  }
+}
+
+function bgFor(t){
+  const map = {
+    red:'linear-gradient(160deg,#ff7a7a,#ef4444)',
+    orange:'linear-gradient(160deg,#ffd194,#fb923c)',
+    yellow:'linear-gradient(160deg,#fff59a,#facc15)',
+    green:'linear-gradient(160deg,#9bffc0,#22c55e)',
+    blue:'linear-gradient(160deg,#9dd8ff,#3b82f6)',
+    purple:'linear-gradient(160deg,#dab6ff,#8b5cf6)',
+  };
+  if(t.special==='color') return 'radial-gradient(circle at 30% 30%, #fff, #ffd6ff 30%, #c084fc 60%, #4c1d95 100%)';
+  return map[t.type]||'#444';
+}
+
+function tileAt(r,c){ return board[r]?.[c]; }
+
+function addTileEvents(el){
+  el.addEventListener('pointerdown', (e)=>{
+    if(busy) return; e.preventDefault(); el.setPointerCapture(e.pointerId);
+    const r=+el.dataset.r, c=+el.dataset.c;
+    dragStart = {r,c, x:e.clientX, y:e.clientY, el};
+    el.classList.add('dragging','glow');
+    selected = {r,c};
+  });
+  el.addEventListener('pointermove', (e)=>{
+    if(!dragStart) return;
+    const dx = e.clientX - dragStart.x; const dy = e.clientY - dragStart.y;
+    const threshold = tileSize*0.45;
+    let nr = dragStart.r, nc = dragStart.c;
+    if(Math.abs(dx) > Math.abs(dy)){
+      nc += dx>threshold?1: dx<-threshold?-1:0;
+    }else{
+      nr += dy>threshold?1: dy<-threshold?-1:0;
+    }
+    if((nr!==dragStart.r || nc!==dragStart.c) && inBounds(nr,nc) && adjacent(dragStart.r,dragStart.c,nr,nc)){
+      trySwap(dragStart.r,dragStart.c,nr,nc);
+      cancelDrag();
+    }
+  });
+  const endDrag=()=>{
+    if(dragStart){ dragStart.el.classList.remove('dragging','glow'); }
+    dragStart=null; selected=null;
+  };
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+  el.addEventListener('lostpointercapture', endDrag);
+}
+function cancelDrag(){ if(dragStart){ dragStart.el.classList.remove('dragging','glow'); } dragStart=null; selected=null; }
+function inBounds(r,c){ return r>=0 && r<BOARD_SIZE && c>=0 && c<BOARD_SIZE; }
+function adjacent(r1,c1,r2,c2){ return (Math.abs(r1-r2)+Math.abs(c1-c2))===1; }
+
+async function trySwap(r1,c1,r2,c2){
+  if(busy) return;
+  const t1 = tileAt(r1,c1), t2 = tileAt(r2,c2);
+  if(!t1 || !t2) return;
+  if(t1.locked || t2.locked) { shakeTile(r2,c2); badSound(); return; }
+  busy = true;
+  // swap in data
+  board[r1][c1]=t2; board[r2][c2]=t1;
+  // animate
+  animateSwap(r1,c1,r2,c2);
+  await delay(120);
+  const matches = findAllMatches();
+  if(matches.length===0 && !(t1.special==='color' || t2.special==='color')){
+    // revert
+    board[r1][c1]=t1; board[r2][c2]=t2;
+    animateSwap(r1,c1,r2,c2,true);
+    await delay(120);
+    busy=false; badSound(); return;
+  }
+  movesLeft--; updateGameHUD();
+  beep(520,.07,'triangle',.18);
+  await resolveBoard({swap:{a:{r:r1,c:c1,t:t1}, b:{r:r2,c:c2,t:t2}}});
+  busy=false;
+  afterMoveChecks();
+}
+
+function animateSwap(r1,c1,r2,c2, revert=false){
+  const a = getTileEl(r1,c1), b = getTileEl(r2,c2);
+  if(!a||!b) return;
+  a.style.transform = `translate(${c2*tileSize}px, ${r2*tileSize}px)`;
+  b.style.transform = `translate(${c1*tileSize}px, ${r1*tileSize}px)`;
+  // swap dataset for further animation continuity
+  a.dataset.r=r2; a.dataset.c=c2;
+  b.dataset.r=r1; b.dataset.c=c1;
+}
+function getTileEl(r,c){ return [...boardEl.children].find(el=>+el.dataset.r===r && +el.dataset.c===c); }
+function shakeTile(r,c){ const el=getTileEl(r,c); if(!el) return; el.classList.add('shake'); setTimeout(()=>el.classList.remove('shake'), 250); }
+
+function findAllMatches(){
+  const marks = Array.from({length:BOARD_SIZE}, ()=> Array(BOARD_SIZE).fill(false));
+  const groups = [];
+  // horizontal
+  for(let r=0;r<BOARD_SIZE;r++){
+    let c=0;
+    while(c<BOARD_SIZE){
+      const t = tileAt(r,c);
+      if(!t){c++;continue;}
+      let run=1;
+      while(c+run<BOARD_SIZE && tileAt(r,c+run) && tileAt(r,c+run).type===t.type) run++;
+      if(run>=3){
+        const g=[]; for(let k=0;k<run;k++){ marks[r][c+k]=true; g.push({r,c:c+k}); }
+        groups.push({cells:g, dir:'h'});
+      }
+      c+=Math.max(1,run);
+    }
+  }
+  // vertical
+  for(let c=0;c<BOARD_SIZE;c++){
+    let r=0;
+    while(r<BOARD_SIZE){
+      const t = tileAt(r,c);
+      if(!t){r++;continue;}
+      let run=1;
+      while(r+run<BOARD_SIZE && tileAt(r+run,c) && tileAt(r+run,c).type===t.type) run++;
+      if(run>=3){
+        const g=[]; for(let k=0;k<run;k++){ marks[r+k][c]=true; g.push({r:r+k,c}); }
+        groups.push({cells:g, dir:'v'});
+      }
+      r+=Math.max(1,run);
+    }
+  }
+  // merge overlapping groups into clusters for special detection
+  return groups;
+}
+
+function findConnectedClusters(groups){
+  const cellKey = (r,c)=>r+'_'+c;
+  const map = new Map();
+  groups.forEach((g,idx)=>{
+    g.cells.forEach(({r,c})=>{
+      if(!map.has(cellKey(r,c))) map.set(cellKey(r,c), []);
+      map.get(cellKey(r,c)).push(idx);
+    });
+  });
+  const visited = new Set();
+  const clusters=[];
+  groups.forEach((g,idx)=>{
+    if(visited.has(idx)) return;
+    const stack=[idx]; const comp=[];
+    while(stack.length){
+      const i=stack.pop(); if(visited.has(i)) continue; visited.add(i); comp.push(groups[i]);
+      groups[i].cells.forEach(({r,c})=>{
+        (map.get(cellKey(r,c))||[]).forEach(j=>{ if(!visited.has(j)) stack.push(j); });
+      });
+    }
+    clusters.push(comp);
+  });
+  return clusters;
+}
+
+async function resolveBoard(context={}){
+  combo=0;
+  specialQueued=[];
+  // handle special activation by swap with color bomb
+  if(context.swap){
+    const a = context.swap.a, b = context.swap.b;
+    if(a.t.special==='color' || b.t.special==='color'){
+      await activateColorBomb(a,b);
+      await collapseAndRefill();
+      return;
+    }
+    if(a.t.special==='wrapped' && b.t.special==='wrapped'){
+      await explodeWrapped(a.r,a.c, true); await explodeWrapped(b.r,b.c, true);
+      await collapseAndRefill(); return;
+    }
+    if(a.t.special && b.t.special && a.t.special.includes('striped') && b.t.special.includes('striped')){
+      await crossStriped(a.r,a.c); await crossStriped(b.r,b.c);
+      await collapseAndRefill(); return;
+    }
+  }
+  // loop
+  while(true){
+    const groups = findAllMatches();
+    if(groups.length===0) break;
+    combo++;
+    vibrate(combo>1? [10,30,20]: 10);
+    // Determine specials creation positions
+    const clusters = findConnectedClusters(groups);
+    const toRemove = new Set();
+    clusters.forEach(cluster=>{
+      const cells = [];
+      cluster.forEach(g=> g.cells.forEach(cell=> cells.push(cell)));
+      const uniq = []; const seen=new Set();
+      cells.forEach(({r,c})=>{ const k=r+'_'+c; if(!seen.has(k)){seen.add(k); uniq.push({r,c});}});
+      // decide special
+      const hasH = cluster.some(g=>g.dir==='h' && g.cells.length>=4);
+      const hasV = cluster.some(g=>g.dir==='v' && g.cells.length>=4);
+      const isFive = uniq.length>=5 || cluster.some(g=>g.cells.length>=5);
+      const isLShape = cluster.length>=2; // overlapping
+      let special = null, specialPos=null;
+      if(isFive){ special='color'; }
+      else if(isLShape){ special='wrapped'; }
+      else if(hasH || hasV){ special = hasH? 'striped-h':'striped-v'; }
+      if(special){
+        // pick center-most cell as special position (prefer swap cell if exists)
+        let pick = uniq[Math.floor(uniq.length/2)];
+        if(context.swap){
+          const sr = context.swap.a.r, sc = context.swap.a.c, tr = context.swap.b.r, tc = context.swap.b.c;
+          if(uniq.some(q=>q.r===sr && q.c===sc)) pick={r:sr,c:sc};
+          if(uniq.some(q=>q.r===tr && q.c===tc)) pick={r:tr,c:tc};
+        }
+        specialPos = pick;
+      }
+      // mark removal
+      uniq.forEach(({r,c})=> toRemove.add(r+'_'+c));
+      if(special && specialPos){
+        specialQueued.push({pos:specialPos, special});
+        toRemove.delete(specialPos.r+'_'+specialPos.c); // keep the special tile
+      }
+    });
+    // score
+    const removedCount = toRemove.size + specialQueued.length;
+    const gained = removedCount* (10 + (combo-1)*5);
+    score += gained; showFloatingScore(gained);
+    // process special tile activations triggered by being part of match
+    const activations = [];
+    toRemove.forEach(k=>{
+      const [r,c]=k.split('_').map(Number);
+      const t=tileAt(r,c);
+      if(!t) return;
+      if(t.ice>0){ t.ice--; if(t.ice===0){ popSound();}}
+      if(t.locked){ t.locked=false; }
+      if(t.special){ activations.push({r,c,t}); }
+    });
+    // remove visuals
+    await removeTiles(toRemove);
+    // place queued specials
+    specialQueued.forEach(({pos,special})=>{
+      const t = tileAt(pos.r,pos.c);
+      if(t){ t.special = special; t.type = t.type; }
+    });
+    specialQueued=[];
+    // trigger activations caused by being in match (wrapped/ striped)
+    for(const act of activations){
+      if(act.t.special==='wrapped') await explodeWrapped(act.r, act.c);
+      if(act.t.special==='striped-h') await lineBlast(act.r, act.c, 'h');
+      if(act.t.special==='striped-v') await lineBlast(act.r, act.c, 'v');
+    }
+    renderBoard();
+    await collapseAndRefill();
+    // chain reaction sound
+    if(combo===1) popSound(); else if(combo===2) chord(660); else sparkle();
+  }
+  // post resolve updates
+  updateGameHUD();
+}
+
+function showFloatingScore(gained){
+  const el = document.createElement('div');
+  el.textContent = '+'+gained;
+  el.style.position='absolute'; el.style.left='50%'; el.style.top='0'; el.style.transform='translate(-50%,-20px)'; el.style.fontWeight='800'; el.style.fontSize='22px'; el.style.textShadow='0 2px 6px rgba(0,0,0,.5)'; el.style.opacity='0'; el.style.transition='all .6s ease';
+  boardEl.parentElement.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translate(-50%,-60px)'; });
+  setTimeout(()=>{ el.style.opacity='0'; }, 400);
+  setTimeout(()=>el.remove(), 700);
+}
+
+async function removeTiles(toRemoveSet){
+  // mark remove class
+  toRemoveSet.forEach(k=>{
+    const [r,c]=k.split('_').map(Number);
+    const el=getTileEl(r,c);
+    if(el) el.classList.add('remove');
+    const t=tileAt(r,c);
+    // goal collection
+    if(t && levelData.collect && levelData.collect[t.type]!=null){
+      goalState.collected[t.type] = (goalState.collected[t.type]||0)+1;
+    }
+    // particles
+    spawnParticles(r,c,t?.type||'pink');
+    // clear tile in data after animation
+    setTimeout(()=>{ if(inBounds(r,c)) board[r][c]=null; }, 160);
+  });
+  await delay(180);
+}
+
+function spawnParticles(r,c,colorName){
+  const rect = boardEl.getBoundingClientRect();
+  const x = rect.left + c*tileSize + tileSize/2;
+  const y = rect.top + r*tileSize + tileSize/2;
+  const col = {red:'#ef4444', orange:'#fb923c', yellow:'#facc15', green:'#22c55e', blue:'#3b82f6', purple:'#8b5cf6'}[colorName] || '#fff';
+  for(let i=0;i<14;i++) particles.push(new Particle(x-rect.left, y-rect.top, col));
+}
+
+async function collapseAndRefill(){
+  // gravity
+  for(let c=0;c<BOARD_SIZE;c++){
+    let write = BOARD_SIZE-1;
+    for(let r=BOARD_SIZE-1;r>=0;r--){
+      if(tileAt(r,c)){
+        if(write!==r){
+          board[write][c]=board[r][c];
+          board[r][c]=null;
+        }
+        write--;
+      }
+    }
+    // fill
+    for(let r=write;r>=0;r--){
+      board[r][c]= newTile(randomCandy());
+    }
+  }
+  renderBoard();
+  await delay(90);
+}
+
+async function activateColorBomb(a,b){
+  // a or b is color. The other determines color to clear.
+  const colorTile = a.t.special==='color'? a: b;
+  const other = colorTile===a? b: a;
+  const targetColor = other.t.type;
+  beep(900,.12,'sawtooth',.2); sparkle();
+  // remove all of target color + the bomb
+  const toRemove = new Set();
+  for(let r=0;r<BOARD_SIZE;r++) for(let c=0;c<BOARD_SIZE;c++){
+    const t = tileAt(r,c);
+    if(t && (t.type===targetColor || (r===colorTile.r && c===colorTile.c))){
+      toRemove.add(r+'_'+c);
+    }
+  }
+  await removeTiles(toRemove);
+  await collapseAndRefill();
+}
+
+async function explodeWrapped(r,c, double=false){
+  const radius = double? 4: 3;
+  const toRemove = new Set();
+  for(let dr=-radius; dr<=radius; dr++){
+    for(let dc=-radius; dc<=radius; dc++){
+      const nr=r+dr, nc=c+dc;
+      if(!inBounds(nr,nc)) continue;
+      if(Math.abs(dr)+Math.abs(dc)<=radius){
+        toRemove.add(nr+'_'+nc);
+      }
+    }
+  }
+  chord(500);
+  await removeTiles(toRemove);
+}
+
+async function lineBlast(r,c, dir){
+  const toRemove = new Set();
+  if(dir==='h'){ for(let cc=0; cc<BOARD_SIZE; cc++) toRemove.add(r+'_'+cc); }
+  else{ for(let rr=0; rr<BOARD_SIZE; rr++) toRemove.add(rr+'_'+c); }
+  beep(750,.1,'square', .18);
+  await removeTiles(toRemove);
+}
+async function crossStriped(r,c){
+  const toRemove = new Set();
+  for(let i=0;i<BOARD_SIZE;i++){ toRemove.add(r+'_'+i); toRemove.add(i+'_'+c); }
+  chord(700);
+  await removeTiles(toRemove);
+}
+
+function afterMoveChecks(){
+  // no moves -> shuffle
+  if(!hasAnyMoves()){
+    shuffleBoard();
+  }
+  // check win/lose
+  if(isLevelGoalMet()){
+    winLevel();
+  }else if(movesLeft<=0){
+    outOfMoves();
+  }
+}
+
+function isLevelGoalMet(){
+  if(score < levelData.targetScore) return false;
+  for(const k in levelData.collect){
+    if((goalState.collected[k]||0) < levelData.collect[k]) return false;
+  }
+  // also require clearing all ice/locks if present
+  for(let r=0;r<BOARD_SIZE;r++) for(let c=0;c<BOARD_SIZE;c++){
+    const t=tileAt(r,c); if(t && (t.ice>0 || t.locked)) return false;
+  }
+  return true;
+}
+
+function hasAnyMoves(){
+  // brute check simple: any swap leads to match or special usage
+  for(let r=0;r<BOARD_SIZE;r++) for(let c=0;c<BOARD_SIZE;c++){
+    const dirs=[[1,0],[0,1]];
+    for(const [dr,dc] of dirs){
+      const nr=r+dr, nc=c+dc; if(!inBounds(nr,nc)) continue;
+      const t1=tileAt(r,c), t2=tileAt(nr,nc); if(!t1||!t2) continue; if(t1.locked||t2.locked) continue;
+      // quick test
+      board[r][c]=t2; board[nr][nc]=t1;
+      const ok = findAllMatches().length>0 || t1.special==='color' || t2.special==='color';
+      board[r][c]=t1; board[nr][nc]=t2;
+      if(ok) return true;
+    }
+  }
+  return false;
+}
+
+function shuffleBoard(){
+  const flat=[];
+  for(let r=0;r<BOARD_SIZE;r++) for(let c=0;c<BOARD_SIZE;c++){ if(tileAt(r,c)) flat.push(tileAt(r,c)); }
+  for(let i=flat.length-1;i>0;i--){ const j=rand(0,i); [flat[i],flat[j]]=[flat[j],flat[i]]; }
+  let idx=0;
+  for(let r=0;r<BOARD_SIZE;r++) for(let c=0;c<BOARD_SIZE;c++){ if(tileAt(r,c)) board[r][c]=flat[idx++]; }
+  sanitizeBoard();
+  renderBoard();
+  beep(300,.08,'sine',.15);
+}
+
+function updateGameHUD(){
+  $('#hudLevel').textContent = curLevel;
+  $('#hudMoves').textContent = movesLeft;
+  $('#hudScore').textContent = score.toLocaleString();
+  const goals = [];
+  goals.push(`Score ${levelData.targetScore.toLocaleString()}`);
+  for(const k in levelData.collect){
+    const need = levelData.collect[k];
+    const have = goalState.collected[k]||0;
+    const emoji = CANDIES.find(c=>c.color===k)?.emoji || '🍬';
+    goals.push(`${emoji} ${Math.min(have,need)}/${need}`);
+  }
+  $('#hudGoal').textContent = goals.join(' • ');
+}
+
+function showLevelStart(){
+  $('#startLevelNum').textContent = curLevel;
+  $('#startGoalDesc').textContent = `Reach ${levelData.targetScore.toLocaleString()} points in ${levelData.moves} moves.`;
+  const icons = [];
+  const cont = $('#startGoalIcons'); cont.innerHTML='';
+  for(const k in levelData.collect){
+    const need = levelData.collect[k];
+    const emoji = CANDIES.find(c=>c.color===k)?.emoji || '🍬';
+    const chip = document.createElement('div'); chip.className='hud-chip'; chip.innerHTML=`<span>${emoji}</span> <b>${need}</b>`;
+    cont.appendChild(chip);
+  }
+  if(levelData.ice) { const chip = document.createElement('div'); chip.className='hud-chip'; chip.innerHTML=`🧊 <b>${levelData.ice}</b>`; cont.appendChild(chip); }
+  if(levelData.locks){ const chip = document.createElement('div'); chip.className='hud-chip'; chip.innerHTML=`🔒 <b>${levelData.locks}</b>`; cont.appendChild(chip); }
+  openModal('#modalLevelStart');
+}
+$('#btnStartLevel').addEventListener('click', ()=>{ closeModals(); if(starterBoost){ placeStarterBoost(); starterBoost=null; renderBoard(); } });
+
+function placeStarterBoost(){
+  // place at random empty non-locked cell
+  let tries=100;
+  while(tries-- >0){
+    const r=rand(0,BOARD_SIZE-1), c=rand(0,BOARD_SIZE-1);
+    const t=tileAt(r,c); if(!t || t.locked || t.ice) continue;
+    t.special = starterBoost; break;
+  }
+}
+
+async function winLevel(){
+  busy=true;
+  sparkle(); chord(660);
+  // star calculation
+  const stars = calcStars();
+  const reward = 50 + curLevel*5 + stars*25;
+  state.coins += reward; 
+  state.progress[curLevel] = {stars: Math.max(stars, state.progress[curLevel]?.stars||0), bestScore: Math.max(score, state.progress[curLevel]?.bestScore||0)};
+  if(curLevel>=state.unlocked) state.unlocked = Math.min(50, curLevel+1);
+  saveState();
+  $('#endTitle').textContent = 'Level Complete!';
+  $('#endSubtitle').textContent = `Score ${score.toLocaleString()}`;
+  $('#endCoins').textContent = reward;
+  $('#star1').textContent = stars>=1?'⭐':'☆';
+  $('#star2').textContent = stars>=2?'⭐':'☆';
+  $('#star3').textContent = stars>=3?'⭐':'☆';
+  openModal('#modalEnd');
+  // interstitial chance
+  if(curLevel%3===0) showInterstitial();
+  busy=false;
+}
+function calcStars(){
+  let s=1;
+  if(score >= levelData.targetScore*1.5) s=2;
+  if(score >= levelData.targetScore*2.2 && movesLeft>=5) s=3;
+  return s;
+}
+
+function outOfMoves(){
+  openModal('#modalOut');
+}
+$('#btnContinueAd').addEventListener('click', ()=>{ closeModals(); showRewarded((ok)=>{ if(ok){ movesLeft+=5; updateGameHUD(); } else { } }); });
+$('#btnContinueCoins').addEventListener('click', ()=>{
+  if(state.coins>=150){ state.coins-=150; saveState(); movesLeft+=5; updateGameHUD(); closeModals(); }
+  else{ alert('Not enough coins'); }
+});
+$('#btnGiveUp').addEventListener('click', ()=>{ closeModals(); showScreen('map'); });
+
+$('#btnNext').addEventListener('click', ()=>{ closeModals(); startLevel(curLevel+1); });
+$('#btnReplay').addEventListener('click', ()=>{ closeModals(); startLevel(curLevel); });
+$('#btnMapFromEnd').addEventListener('click', ()=>{ closeModals(); showScreen('map'); });
+
+function startLevel(n){
+  n = clamp(n, 1, 50);
+  showScreen('game');
+  initBoard(n);
+}
+
+function showScreen(which){
+  ['screen-start','screen-map','screen-game'].forEach(id=> $('#'+id).classList.add('hidden'));
+  $('#screen-'+which).classList.remove('hidden');
+}
+
+// =============== Map ===============
+function renderMap(){
+  const grid = $('#mapGrid'); grid.innerHTML='';
+  for(let i=1;i<=50;i++){
+    const btn = document.createElement('button');
+    const unlocked = i<=state.unlocked;
+    btn.className = 'relative aspect-square rounded-2xl btn ' + (unlocked? 'glass hover:brightness-110':'opacity-40 glass');
+    btn.innerHTML = `<div class="absolute inset-0 grid place-items-center">
+        <div class="title-font text-2xl">${i}</div>
+        <div class="text-xs opacity-80">${state.progress[i]?.stars? '⭐'.repeat(state.progress[i].stars):''}</div>
+      </div>`;
+    if(unlocked){ btn.addEventListener('click', ()=> startLevel(i)); }
+    grid.appendChild(btn);
+  }
+}
+renderMap();
+
+// =============== Boosters ===============
+$('#btnBoostStriped').addEventListener('click', ()=>{
+  if(state.boosters.striped<=0) return; state.boosters.striped--; starterBoost='striped-h'; saveState(); startLevel(curLevel);
+});
+$('#btnBoostBomb').addEventListener('click', ()=>{
+  if(state.boosters.bomb<=0) return; state.boosters.bomb--; starterBoost='wrapped'; saveState(); startLevel(curLevel);
+});
+$('#btnBoostColor').addEventListener('click', ()=>{
+  if(state.boosters.color<=0) return; state.boosters.color--; starterBoost='color'; saveState(); startLevel(curLevel);
+});
+$('#btnShuffle').addEventListener('click', ()=>{
+  if(state.coins<50){ alert('Need 50 coins'); return; }
+  state.coins-=50; saveState(); shuffleBoard();
+});
+
+// =============== Shop ===============
+$('#btnShop').addEventListener('click', ()=> openModal('#modalShop'));
+$('#btnCloseShop').addEventListener('click', closeModals);
+$$('[data-buy]').forEach(b=> b.addEventListener('click', ()=>{
+  const type=b.dataset.buy; const cost={striped:120,bomb:150,color:300}[type];
+  if(state.coins>=cost){ state.coins-=cost; state.boosters[type]++; saveState(); beep(800,.08,'triangle',.18); }
+  else alert('Not enough coins');
+}));
+
+// =============== Settings ===============
+$('#btnSettings').addEventListener('click', ()=> openModal('#modalSettings'));
+$('#btnCloseSettings').addEventListener('click', closeModals);
+$('#toggleSound').addEventListener('click', ()=>{ state.settings.sound=!state.settings.sound; saveState(); updateHUD(); });
+$('#toggleVib').addEventListener('click', ()=>{ state.settings.vib=!state.settings.vib; saveState(); updateHUD(); });
+$('#btnMute').addEventListener('click', ()=>{ state.settings.sound=!state.settings.sound; saveState(); updateHUD(); });
+
+// =============== Daily Reward ===============
+$('#btnDaily').addEventListener('click', ()=>{ buildDaily(); openModal('#modalDaily'); });
+function buildDaily(){
+  const grid=$('#dailyGrid'); grid.innerHTML='';
+  const rewards=[50,80,120,200,300];
+  const today = new Date().toDateString();
+  const canClaim = state.lastDaily !== today;
+  $('#dailyNote').textContent = canClaim? 'Claim your reward!' : 'Come back tomorrow!';
+  $('#btnClaimDaily').classList.toggle('opacity-60', !canClaim);
+  $('#btnClaimDaily').classList.toggle('pointer-events-none', !canClaim);
+  rewards.forEach((amt, i)=>{
+    const day = i+1;
+    const claimed = i < state.dailyStreak;
+    const cell=document.createElement('div');
+    cell.className='glass rounded-xl p-3 text-center '+(claimed?'opacity-60':'');
+    cell.innerHTML=`<div class="text-2xl">🎁</div><div class="text-xs opacity-80">Day ${day}</div><div class="font-bold">🪙 ${amt}</div>`;
+    grid.appendChild(cell);
+  });
+}
+$('#btnClaimDaily').addEventListener('click', ()=>{
+  const today = new Date().toDateString();
+  if(state.lastDaily===today) return;
+  const rewards=[50,80,120,200,300];
+  const amt = rewards[Math.min(state.dailyStreak, rewards.length-1)];
+  state.coins+=amt; state.dailyStreak = (state.dailyStreak+1)%5; state.lastDaily=today; saveState(); closeModals(); sparkle();
+});
+
+// =============== Ads simulation ===============
+function showInterstitial(){
+  openModal('#modalInterstitial');
+  let t=5; $('#adCountdown').textContent=t;
+  const iv=setInterval(()=>{ t--; $('#adCountdown').textContent=t; if(t<=0){ clearInterval(iv); $('#btnCloseInterstitial').classList.remove('opacity-60','pointer-events-none'); } }, 1000);
+}
+$('#btnCloseInterstitial').addEventListener('click', ()=>{ closeModals(); });
+
+function showRewarded(cb){
+  openModal('#modalRewarded');
+  let p=0; $('#rewardBar').style.width='0%'; $('#btnClaimReward').classList.add('opacity-60','pointer-events-none');
+  const iv=setInterval(()=>{ p+=20; $('#rewardBar').style.width=p+'%'; if(p>=100){ clearInterval(iv); $('#btnClaimReward').classList.remove('opacity-60','pointer-events-none'); } }, 400);
+  $('#btnClaimReward').onclick=()=>{ closeModals(); cb(true); };
+}
+
+// =============== Navigation ===============
+$('#btnPlay').addEventListener('click', ()=> startLevel(state.unlocked));
+$('#btnMap').addEventListener('click', ()=> { renderMap(); showScreen('map'); });
+$('#btnBackFromMap').addEventListener('click', ()=> showScreen('start'));
+$('#btnQuit').addEventListener('click', ()=> { showScreen('map'); });
+
+// =============== Particles ===============
+const particles=[];
+function Particle(x,y,color){
+  this.x=x; this.y=y; this.vx=(Math.random()*2-1)*3; this.vy=(Math.random()*-3)-1; this.life=40+rand(0,20); this.max= this.life; this.c=color; this.s= 3+Math.random()*3;
+}
+Particle.prototype.update=function(){
+  this.vy+=0.12; this.x+=this.vx; this.y+=this.vy; this.life--;
+};
+Particle.prototype.draw=function(ctx){
+  const a = clamp(this.life/this.max, 0,1);
+  ctx.globalAlpha=a; ctx.fillStyle=this.c; ctx.beginPath(); ctx.arc(this.x, this.y, this.s, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+};
+function fxLoop(){
+  fxCtx.clearRect(0,0,fxCanvas.width, fxCanvas.height);
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i]; p.update(); p.draw(fxCtx); if(p.life<=0) particles.splice(i,1);
+  }
+  requestAnimationFrame(fxLoop);
+}
+fxLoop();
+
+// =============== Start ===============
+updateHUD();
+showScreen('start');
+
+// expose some test cheats via console
+window.sweet = { state, startLevel, saveState };
+</script>
+</body>
+</html>
