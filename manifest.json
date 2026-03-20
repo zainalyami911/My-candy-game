@@ -1,0 +1,18 @@
+{
+  "name": "Zezo Game: Sweet Crush",
+  "short_name": "Zezo Game",
+  "description": "استمتع بتجربة سكاكر ثلاثية الأبعاد مع حركة سلسة وتحديات ذكية.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f1020",
+  "theme_color": "#ff4d94",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3081/3081840.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
